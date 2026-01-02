@@ -1,0 +1,32 @@
+
+# Terraform
+**/.terraform/
+*.tfstate
+*.tfstate.*
+.terraform.lock.hcl
+
+# AWS / Secrets
+*.pem
+*.key
+.env
+*.env
+
+# Python
+__pycache__/
+*.pyc
+venv/
+env/
+
+# Docker
+*.log
+
+# Node / Frontend
+node_modules/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/

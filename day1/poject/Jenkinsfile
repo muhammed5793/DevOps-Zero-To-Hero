@@ -1,0 +1,78 @@
+pipeline {
+    agent any
+
+    stages {
+
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+
+        stage('Build Docker Image') {
+            steps {
+                sh "docker build -t myflaskapp:${BUILD_NUMBER} ."
+            }
+        }
+
+        stage('Test Application') {
+            steps {
+                sh '''
+                # Run container
+                docker rm -f test_container || true
+                docker run -d -p 5000:5000 --name test_container myflaskapp:${BUILD_NUMBER}
+
+                # Wait for app to start
+                sleep 5
+
+                # Test endpoint
+                curl -f http://localhost:5000 || exit 1
+
+                # Cleanup
+                docker stop test_container
+                docker rm test_container
+                '''
+            }
+        }
+
+        stage('Push Image') {
+            steps {
+                withCredentials([usernamePassword(credentialsId: 'cafbf5cd-d5c4-4af5-9b2d-7968dd8b722b',
+                                                 usernameVariable: 'DOCKER_USER',
+                                                 passwordVariable: 'DOCKER_PASS')]) {
+                    sh '''
+                    echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
+                    docker tag myflaskapp:${BUILD_NUMBER} $DOCKER_USER/myflaskapp:${BUILD_NUMBER}
+                    docker push $DOCKER_USER/myflaskapp:${BUILD_NUMBER}
+                    '''
+                }
+            }
+        }
+        stage('Update K8s Manifest') {
+    steps {
+        sh '''
+        git clone https://github.com/muhammed5793/myflask-k8s-manifests.git
+        cd myflask-k8s-manifests/myflask-k8s-manifests/
+
+        sed -i "s|image:.*|image: $DOCKER_USER/myflaskapp:${BUILD_NUMBER}|" deployment.yaml
+
+        git config user.email "jenkins@ci.com"
+        git config user.name "jenkins"
+        git add deployment.yaml
+        git commit -m "Update image to ${BUILD_NUMBER}"
+        git push origin main
+        '''
+    }
+}
+
+    }  // <-- closes stages
+
+    post {
+        success {
+            echo "✅ Pipeline completed successfully!"
+        }
+        failure {
+            echo "❌ Pipeline failed. Check logs."
+        }
+    }
+}  // <-- closes pipeline

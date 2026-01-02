@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Simple Flask App</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Simple Flask Application</h1>
+        <form method="POST">
+            <input type="text" name="name" placeholder="Enter your name" required>
+            <button type="submit">Submit</button>
+        </form>
+        <p>{{ message }}</p>
+    </div>
+</body>
+</html>
